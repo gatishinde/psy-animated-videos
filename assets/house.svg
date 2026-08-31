@@ -1,0 +1,191 @@
+
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="768"
+     height="768"
+     viewBox="0 0 768 768">
+
+    <rect width="768"
+          height="768"
+          fill="#f8f5ed"/>
+
+    <!-- HOUSE BODY -->
+    <rect x="145"
+          y="350"
+          width="475"
+          height="220"
+          rx="8"
+          fill="#fffdf7"
+          stroke="#482b22"
+          stroke-width="8"/>
+
+
+    <!-- MAIN ROOF -->
+    <path d="
+        M 95 350
+        Q 100 330 115 305
+        L 185 180
+        Q 198 158 225 158
+        L 505 158
+        Q 530 158 547 180
+        L 655 315
+        Q 674 340 658 350
+        Z"
+        fill="#ee7c64"
+        stroke="#482b22"
+        stroke-width="9"
+        stroke-linejoin="round"/>
+
+
+    <!-- DORMER WALL -->
+    <path d="
+        M 286 285
+        L 277 208
+        L 365 138
+        L 454 210
+        L 445 285
+        Z"
+        fill="#fffdf7"
+        stroke="#482b22"
+        stroke-width="8"/>
+
+
+    <!-- DORMER ROOF -->
+    <path d="
+        M 267 210
+        L 365 116
+        L 470 214"
+        fill="none"
+        stroke="#482b22"
+        stroke-width="16"
+        stroke-linecap="round"
+        stroke-linejoin="round"/>
+
+    <path d="
+        M 273 207
+        L 365 128
+        L 463 210"
+        fill="none"
+        stroke="#f99478"
+        stroke-width="8"
+        stroke-linecap="round"
+        stroke-linejoin="round"/>
+
+
+    <!-- ATTIC WINDOW -->
+    <circle cx="365"
+            cy="218"
+            r="25"
+            fill="#daeef0"
+            stroke="#482b22"
+            stroke-width="7"/>
+
+    <line x1="340"
+          y1="218"
+          x2="390"
+          y2="218"
+          stroke="#482b22"
+          stroke-width="6"/>
+
+    <line x1="365"
+          y1="193"
+          x2="365"
+          y2="243"
+          stroke="#482b22"
+          stroke-width="6"/>
+
+
+    <!-- CHIMNEY -->
+    <rect x="480"
+          y="100"
+          width="80"
+          height="102"
+          rx="3"
+          fill="#fffdf7"
+          stroke="#482b22"
+          stroke-width="8"/>
+
+    <rect x="488"
+          y="107"
+          width="64"
+          height="31"
+          rx="5"
+          fill="#261c18"/>
+
+    <rect x="468"
+          y="86"
+          width="104"
+          height="31"
+          rx="13"
+          fill="#ee7c64"
+          stroke="#482b22"
+          stroke-width="8"/>
+
+
+    <!-- LEFT WINDOW -->
+    <path d="
+        M 180 492
+        L 180 430
+        Q 180 390 230 390
+        Q 280 390 280 430
+        L 280 492
+        Z"
+        fill="#daeef0"
+        stroke="#482b22"
+        stroke-width="8"/>
+
+
+    <!-- RIGHT WINDOW -->
+    <path d="
+        M 485 492
+        L 485 430
+        Q 485 390 535 390
+        Q 585 390 585 430
+        L 585 492
+        Z"
+        fill="#daeef0"
+        stroke="#482b22"
+        stroke-width="8"/>
+
+
+    <!-- DOOR -->
+    <path d="
+        M 320 570
+        L 320 440
+        Q 320 388 375 388
+        Q 430 388 430 440
+        L 430 570
+        Z"
+        fill="#fffdf7"
+        stroke="#482b22"
+        stroke-width="8"/>
+
+
+    <!-- STEPS -->
+    <rect x="315"
+          y="560"
+          width="125"
+          height="25"
+          rx="10"
+          fill="#fffdf7"
+          stroke="#482b22"
+          stroke-width="7"/>
+
+    <rect x="295"
+          y="585"
+          width="165"
+          height="27"
+          rx="10"
+          fill="#fffdf7"
+          stroke="#482b22"
+          stroke-width="7"/>
+
+    <rect x="270"
+          y="612"
+          width="215"
+          height="31"
+          rx="12"
+          fill="#fffdf7"
+          stroke="#482b22"
+          stroke-width="7"/>
+
+</svg>

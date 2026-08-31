@@ -4,14 +4,11 @@ import numpy as np
 import math
 import os
 
+from rlottie_python import LottieAnimation
+
 
 # ============================================================
 #                     EXPERIMENT SETTINGS
-# ============================================================
-#
-# MOST OF THE THINGS YOU WILL WANT TO CHANGE LATER
-# ARE IN THIS SECTION.
-#
 # ============================================================
 
 
@@ -24,15 +21,15 @@ HEIGHT = 768
 
 
 # ------------------------------------------------------------
-# FRAME RATE
+# VIDEO FRAME RATE
 # ------------------------------------------------------------
 #
-# 60 FPS means:
+# 60 FPS:
 #
-# 1 second = 60 frames
-# 2 seconds = 120 frames
+# 1 second = 60 video frames
+# 5 seconds = 300 video frames
 #
-# This makes the timing inside the generated video predictable.
+# Each video frame lasts approximately 16.67 ms.
 #
 
 FPS = 60
@@ -46,42 +43,32 @@ VIDEO_DURATION = 5.0
 
 
 # ------------------------------------------------------------
-# IMPORTANT EEG TIMING
+# FINAL TIME
 # ------------------------------------------------------------
 #
-# The butterfly appears at time = 0.
-#
-# At exactly this time, the butterfly will have completed
-# its movement into the chimney.
-#
-# Example:
-#
-# 2.0 seconds at 60 FPS = frame 120
+# Butterfly should be completely inside the chimney
+# at this time.
 #
 
 FINAL_TIME = 5.0
 
 
 # ------------------------------------------------------------
-# CHIMNEY ENTRY TIMING
+# CHIMNEY ENTRY DURATION
 # ------------------------------------------------------------
 #
-# The butterfly spends most of the time flying toward the
-# chimney.
+# Last 0.30 seconds:
 #
-# During the final part, it actually enters the chimney.
-#
-# Example:
-#
-# 0.00 s -> butterfly appears
-# 1.70 s -> reaches chimney
-# 1.70-2.00 s -> goes inside
-# 2.00 s -> completely hidden
+# 4.70 s -> butterfly reaches chimney
+# 4.70 - 5.00 s -> butterfly enters chimney
+# 5.00 s -> completely hidden
 #
 
 ENTRY_DURATION = 0.30
 
-FLIGHT_END_TIME = FINAL_TIME - ENTRY_DURATION
+FLIGHT_END_TIME = (
+    FINAL_TIME - ENTRY_DURATION
+)
 
 
 # ------------------------------------------------------------
@@ -95,57 +82,136 @@ START_Y = 520
 # ------------------------------------------------------------
 # CHIMNEY POSITION
 # ------------------------------------------------------------
-#
-# These coordinates correspond to the house we draw below.
-#
 
 CHIMNEY_CENTER_X = 520
 
-# Top/opening of chimney
-CHIMNEY_OPENING_Y = 112
-
-# Butterfly approaches slightly above the opening first
+# Butterfly approaches slightly above chimney opening
 APPROACH_Y = 75
 
-# Where the butterfly moves while entering
+# Butterfly travels downward to here while entering
 INSIDE_CHIMNEY_Y = 150
 
 
+# ============================================================
+#                   LOTTIE BUTTERFLY
+# ============================================================
+
+
 # ------------------------------------------------------------
-# BUTTERFLY APPEARANCE
+# LOTTIE FILE
 # ------------------------------------------------------------
+#
+# Your current folder:
+#
+# BUTTERFLY/
+#
+#     butterfly.py
+#     Butterfly Lottie Animation.json
+#
+#     assets/
+#     output/
+#
+# Therefore we load the JSON directly from the project folder.
+#
 
-BUTTERFLY_SIZE = 38
+LOTTIE_FILE = "Butterfly Lottie Animation.json"
 
-# Wing beats per second
-WING_FREQUENCY = 5.5
 
-# Small vertical wobble during flight
+# ------------------------------------------------------------
+# BUTTERFLY SIZE
+# ------------------------------------------------------------
+#
+# Increase if butterfly appears too small.
+# Decrease if it appears too large.
+#
+
+BUTTERFLY_SIZE = 100
+
+
+# ------------------------------------------------------------
+# LOTTIE PLAYBACK SPEED
+# ------------------------------------------------------------
+#
+# Your JSON says:
+#
+# original frame rate = 30 FPS
+# frames = 0 -> 120
+# total original duration = 4 seconds
+#
+# From the wing keyframes, approximately one full wing
+# movement occurs every 20 original frames.
+#
+# 20 / 30 = 0.667 seconds
+#
+# approximately:
+#
+# 1.5 wing cycles per second
+#
+#
+# LOTTIE_SPEED = 1.0
+# -> original animation speed
+# -> approximately 1.5 Hz
+#
+# LOTTIE_SPEED = 0.5
+# -> approximately 0.75 Hz
+#
+# LOTTIE_SPEED = 2.0
+# -> approximately 3 Hz
+#
+
+LOTTIE_SPEED = 1.0
+
+
+# ------------------------------------------------------------
+# WHOLE-BUTTERFLY VERTICAL MOVEMENT
+# ------------------------------------------------------------
+#
+# IMPORTANT:
+#
+# This is DIFFERENT from the Lottie wing animation.
+#
+# The Lottie controls the wings.
+#
+# This controls the gentle up/down movement of the
+# entire butterfly while it flies.
+#
+
 FLUTTER_AMOUNT = 7
+
+FLUTTER_FREQUENCY = 0.8
 
 
 # ============================================================
-#                        FOLDERS
+#                         FOLDERS
 # ============================================================
 
 ASSETS_FOLDER = "assets"
+
 OUTPUT_FOLDER = "output"
 
-os.makedirs(ASSETS_FOLDER, exist_ok=True)
-os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+
+os.makedirs(
+    ASSETS_FOLDER,
+    exist_ok=True
+)
+
+os.makedirs(
+    OUTPUT_FOLDER,
+    exist_ok=True
+)
 
 
 # ============================================================
 #                AUTOMATIC VIDEO NUMBERING
 # ============================================================
 #
-# Running the program repeatedly creates:
+# Creates:
 #
-# butterfly_video_1.mp4
-# butterfly_video_2.mp4
-# butterfly_video_3.mp4
+# lottie_animation_1.mp4
+# lottie_animation_2.mp4
+# lottie_animation_3.mp4
 #
-# Old versions are never overwritten.
+# Previous videos are NOT overwritten.
 #
 
 def get_next_output_filename():
@@ -156,48 +222,72 @@ def get_next_output_filename():
 
         filename = os.path.join(
             OUTPUT_FOLDER,
-            f"butterfly_video_{number}.mp4"
+            f"lottie_animation_{number}.mp4"
         )
 
         if not os.path.exists(filename):
+
             return filename
 
         number += 1
 
 
 # ============================================================
-#                    COLOUR DEFINITIONS
+#                     HOUSE COLOURS
 # ============================================================
 
-BACKGROUND_COLOR = (248, 245, 237)
+BACKGROUND_COLOR = (
+    248,
+    245,
+    237
+)
 
-OUTLINE = (72, 43, 34)
+OUTLINE = (
+    72,
+    43,
+    34
+)
 
-ROOF = (238, 124, 100)
+ROOF = (
+    238,
+    124,
+    100
+)
 
-ROOF_LIGHT = (249, 148, 120)
+ROOF_LIGHT = (
+    249,
+    148,
+    120
+)
 
-ROOF_DETAIL = (177, 82, 67)
+ROOF_DETAIL = (
+    177,
+    82,
+    67
+)
 
-WALL = (255, 253, 247)
+WALL = (
+    255,
+    253,
+    247
+)
 
-WINDOW = (218, 238, 240)
+WINDOW = (
+    218,
+    238,
+    240
+)
 
-CHIMNEY_DARK = (38, 28, 24)
+CHIMNEY_DARK = (
+    38,
+    28,
+    24
+)
 
 
 # ============================================================
 #                   CREATE HOUSE SVG
 # ============================================================
-#
-# This creates a real .svg file.
-#
-# Later this can be useful because different parts of the
-# house can be represented as separate vector elements.
-#
-# The MP4 itself is generated with Pillow below because that
-# gives us straightforward frame-by-frame control.
-#
 
 def create_house_svg():
 
@@ -207,23 +297,30 @@ def create_house_svg():
      height="{HEIGHT}"
      viewBox="0 0 {WIDTH} {HEIGHT}">
 
-    <rect width="{WIDTH}"
-          height="{HEIGHT}"
-          fill="#f8f5ed"/>
+    <rect
+        width="{WIDTH}"
+        height="{HEIGHT}"
+        fill="#f8f5ed"
+    />
 
     <!-- HOUSE BODY -->
-    <rect x="145"
-          y="350"
-          width="475"
-          height="220"
-          rx="8"
-          fill="#fffdf7"
-          stroke="#482b22"
-          stroke-width="8"/>
+
+    <rect
+        x="145"
+        y="350"
+        width="475"
+        height="220"
+        rx="8"
+        fill="#fffdf7"
+        stroke="#482b22"
+        stroke-width="8"
+    />
 
 
     <!-- MAIN ROOF -->
-    <path d="
+
+    <path
+        d="
         M 95 350
         Q 100 330 115 305
         L 185 180
@@ -236,11 +333,14 @@ def create_house_svg():
         fill="#ee7c64"
         stroke="#482b22"
         stroke-width="9"
-        stroke-linejoin="round"/>
+        stroke-linejoin="round"
+    />
 
 
     <!-- DORMER WALL -->
-    <path d="
+
+    <path
+        d="
         M 286 285
         L 277 208
         L 365 138
@@ -249,11 +349,14 @@ def create_house_svg():
         Z"
         fill="#fffdf7"
         stroke="#482b22"
-        stroke-width="8"/>
+        stroke-width="8"
+    />
 
 
     <!-- DORMER ROOF -->
-    <path d="
+
+    <path
+        d="
         M 267 210
         L 365 116
         L 470 214"
@@ -261,9 +364,11 @@ def create_house_svg():
         stroke="#482b22"
         stroke-width="16"
         stroke-linecap="round"
-        stroke-linejoin="round"/>
+        stroke-linejoin="round"
+    />
 
-    <path d="
+    <path
+        d="
         M 273 207
         L 365 128
         L 463 210"
@@ -271,61 +376,78 @@ def create_house_svg():
         stroke="#f99478"
         stroke-width="8"
         stroke-linecap="round"
-        stroke-linejoin="round"/>
+        stroke-linejoin="round"
+    />
 
 
     <!-- ATTIC WINDOW -->
-    <circle cx="365"
-            cy="218"
-            r="25"
-            fill="#daeef0"
-            stroke="#482b22"
-            stroke-width="7"/>
 
-    <line x1="340"
-          y1="218"
-          x2="390"
-          y2="218"
-          stroke="#482b22"
-          stroke-width="6"/>
+    <circle
+        cx="365"
+        cy="218"
+        r="25"
+        fill="#daeef0"
+        stroke="#482b22"
+        stroke-width="7"
+    />
 
-    <line x1="365"
-          y1="193"
-          x2="365"
-          y2="243"
-          stroke="#482b22"
-          stroke-width="6"/>
+    <line
+        x1="340"
+        y1="218"
+        x2="390"
+        y2="218"
+        stroke="#482b22"
+        stroke-width="6"
+    />
+
+    <line
+        x1="365"
+        y1="193"
+        x2="365"
+        y2="243"
+        stroke="#482b22"
+        stroke-width="6"
+    />
 
 
     <!-- CHIMNEY -->
-    <rect x="480"
-          y="100"
-          width="80"
-          height="102"
-          rx="3"
-          fill="#fffdf7"
-          stroke="#482b22"
-          stroke-width="8"/>
 
-    <rect x="488"
-          y="107"
-          width="64"
-          height="31"
-          rx="5"
-          fill="#261c18"/>
+    <rect
+        x="480"
+        y="100"
+        width="80"
+        height="102"
+        rx="3"
+        fill="#fffdf7"
+        stroke="#482b22"
+        stroke-width="8"
+    />
 
-    <rect x="468"
-          y="86"
-          width="104"
-          height="31"
-          rx="13"
-          fill="#ee7c64"
-          stroke="#482b22"
-          stroke-width="8"/>
+    <rect
+        x="488"
+        y="107"
+        width="64"
+        height="31"
+        rx="5"
+        fill="#261c18"
+    />
+
+    <rect
+        x="468"
+        y="86"
+        width="104"
+        height="31"
+        rx="13"
+        fill="#ee7c64"
+        stroke="#482b22"
+        stroke-width="8"
+    />
 
 
     <!-- LEFT WINDOW -->
-    <path d="
+
+    <path
+        d="
         M 180 492
         L 180 430
         Q 180 390 230 390
@@ -334,11 +456,14 @@ def create_house_svg():
         Z"
         fill="#daeef0"
         stroke="#482b22"
-        stroke-width="8"/>
+        stroke-width="8"
+    />
 
 
     <!-- RIGHT WINDOW -->
-    <path d="
+
+    <path
+        d="
         M 485 492
         L 485 430
         Q 485 390 535 390
@@ -347,11 +472,14 @@ def create_house_svg():
         Z"
         fill="#daeef0"
         stroke="#482b22"
-        stroke-width="8"/>
+        stroke-width="8"
+    />
 
 
     <!-- DOOR -->
-    <path d="
+
+    <path
+        d="
         M 320 570
         L 320 440
         Q 320 388 375 388
@@ -360,36 +488,44 @@ def create_house_svg():
         Z"
         fill="#fffdf7"
         stroke="#482b22"
-        stroke-width="8"/>
+        stroke-width="8"
+    />
 
 
     <!-- STEPS -->
-    <rect x="315"
-          y="560"
-          width="125"
-          height="25"
-          rx="10"
-          fill="#fffdf7"
-          stroke="#482b22"
-          stroke-width="7"/>
 
-    <rect x="295"
-          y="585"
-          width="165"
-          height="27"
-          rx="10"
-          fill="#fffdf7"
-          stroke="#482b22"
-          stroke-width="7"/>
+    <rect
+        x="315"
+        y="560"
+        width="125"
+        height="25"
+        rx="10"
+        fill="#fffdf7"
+        stroke="#482b22"
+        stroke-width="7"
+    />
 
-    <rect x="270"
-          y="612"
-          width="215"
-          height="31"
-          rx="12"
-          fill="#fffdf7"
-          stroke="#482b22"
-          stroke-width="7"/>
+    <rect
+        x="295"
+        y="585"
+        width="165"
+        height="27"
+        rx="10"
+        fill="#fffdf7"
+        stroke="#482b22"
+        stroke-width="7"
+    />
+
+    <rect
+        x="270"
+        y="612"
+        width="215"
+        height="31"
+        rx="12"
+        fill="#fffdf7"
+        stroke="#482b22"
+        stroke-width="7"
+    />
 
 </svg>
 """
@@ -399,25 +535,37 @@ def create_house_svg():
         "house.svg"
     )
 
-    with open(path, "w") as file:
+    with open(
+        path,
+        "w"
+    ) as file:
+
         file.write(svg)
 
-    print("House SVG created:", path)
+    print(
+        "House SVG created:",
+        path
+    )
 
 
 # ============================================================
-#                 DRAW THE HOUSE FOR VIDEO
+#                    DRAW HOUSE
 # ============================================================
 
 def draw_house():
 
     image = Image.new(
         "RGB",
-        (WIDTH, HEIGHT),
+        (
+            WIDTH,
+            HEIGHT
+        ),
         BACKGROUND_COLOR
     )
 
-    draw = ImageDraw.Draw(image)
+    draw = ImageDraw.Draw(
+        image
+    )
 
 
     # --------------------------------------------------------
@@ -425,7 +573,12 @@ def draw_house():
     # --------------------------------------------------------
 
     draw.rounded_rectangle(
-        (145, 350, 620, 570),
+        (
+            145,
+            350,
+            620,
+            570
+        ),
         radius=8,
         fill=WALL,
         outline=OUTLINE,
@@ -438,14 +591,23 @@ def draw_house():
     # --------------------------------------------------------
 
     roof_points = [
+
         (95, 350),
+
         (115, 305),
+
         (185, 180),
+
         (220, 158),
+
         (505, 158),
+
         (540, 180),
+
         (655, 315),
+
         (660, 350)
+
     ]
 
     draw.polygon(
@@ -454,7 +616,9 @@ def draw_house():
     )
 
     draw.line(
-        roof_points + [(95, 350)],
+        roof_points + [
+            (95, 350)
+        ],
         fill=OUTLINE,
         width=9,
         joint="curve"
@@ -465,10 +629,18 @@ def draw_house():
     # ROOF TILE DETAILS
     # --------------------------------------------------------
 
-    for y, start_x, end_x in [
+    for (
+        y,
+        start_x,
+        end_x
+    ) in [
+
         (225, 150, 580),
+
         (270, 125, 610),
+
         (315, 105, 640)
+
     ]:
 
         x = start_x
@@ -496,11 +668,17 @@ def draw_house():
     # --------------------------------------------------------
 
     dormer = [
+
         (286, 285),
+
         (277, 208),
+
         (365, 138),
+
         (454, 210),
+
         (445, 285)
+
     ]
 
     draw.polygon(
@@ -509,19 +687,23 @@ def draw_house():
     )
 
     draw.line(
-        dormer + [dormer[0]],
+        dormer + [
+            dormer[0]
+        ],
         fill=OUTLINE,
         width=8,
         joint="curve"
     )
 
 
-    # Dormer roof dark outline
+    # Dark dormer roof
 
     draw.line(
         [
             (267, 210),
+
             (365, 116),
+
             (470, 214)
         ],
         fill=OUTLINE,
@@ -530,12 +712,14 @@ def draw_house():
     )
 
 
-    # Dormer roof inner colour
+    # Inner dormer roof
 
     draw.line(
         [
             (274, 207),
+
             (365, 128),
+
             (463, 210)
         ],
         fill=ROOF_LIGHT,
@@ -549,20 +733,35 @@ def draw_house():
     # --------------------------------------------------------
 
     draw.ellipse(
-        (340, 193, 390, 243),
+        (
+            340,
+            193,
+            390,
+            243
+        ),
         fill=WINDOW,
         outline=OUTLINE,
         width=7
     )
 
     draw.line(
-        (365, 194, 365, 242),
+        (
+            365,
+            194,
+            365,
+            242
+        ),
         fill=OUTLINE,
         width=6
     )
 
     draw.line(
-        (341, 218, 389, 218),
+        (
+            341,
+            218,
+            389,
+            218
+        ),
         fill=OUTLINE,
         width=6
     )
@@ -572,10 +771,18 @@ def draw_house():
     # WINDOWS
     # --------------------------------------------------------
 
-    for x in [180, 485]:
+    for x in [
+        180,
+        485
+    ]:
 
         draw.rounded_rectangle(
-            (x, 390, x + 100, 495),
+            (
+                x,
+                390,
+                x + 100,
+                495
+            ),
             radius=40,
             fill=WINDOW,
             outline=OUTLINE,
@@ -583,21 +790,34 @@ def draw_house():
         )
 
         draw.line(
-            (x + 50, 392, x + 50, 492),
+            (
+                x + 50,
+                392,
+                x + 50,
+                492
+            ),
             fill=OUTLINE,
             width=6
         )
 
         draw.line(
-            (x + 3, 447, x + 97, 447),
+            (
+                x + 3,
+                447,
+                x + 97,
+                447
+            ),
             fill=OUTLINE,
             width=6
         )
 
-        # Window sill
-
         draw.rounded_rectangle(
-            (x - 12, 487, x + 112, 507),
+            (
+                x - 12,
+                487,
+                x + 112,
+                507
+            ),
             radius=8,
             fill=WALL,
             outline=OUTLINE,
@@ -610,17 +830,25 @@ def draw_house():
     # --------------------------------------------------------
 
     draw.rounded_rectangle(
-        (320, 388, 430, 570),
+        (
+            320,
+            388,
+            430,
+            570
+        ),
         radius=48,
         fill=WALL,
         outline=OUTLINE,
         width=8
     )
 
-    # Door knob
-
     draw.ellipse(
-        (337, 462, 353, 478),
+        (
+            337,
+            462,
+            353,
+            478
+        ),
         fill=OUTLINE
     )
 
@@ -630,7 +858,12 @@ def draw_house():
     # --------------------------------------------------------
 
     draw.rounded_rectangle(
-        (315, 560, 440, 585),
+        (
+            315,
+            560,
+            440,
+            585
+        ),
         radius=10,
         fill=WALL,
         outline=OUTLINE,
@@ -638,7 +871,12 @@ def draw_house():
     )
 
     draw.rounded_rectangle(
-        (295, 585, 460, 612),
+        (
+            295,
+            585,
+            460,
+            612
+        ),
         radius=10,
         fill=WALL,
         outline=OUTLINE,
@@ -646,7 +884,12 @@ def draw_house():
     )
 
     draw.rounded_rectangle(
-        (270, 612, 485, 643),
+        (
+            270,
+            612,
+            485,
+            643
+        ),
         radius=12,
         fill=WALL,
         outline=OUTLINE,
@@ -659,7 +902,12 @@ def draw_house():
     # --------------------------------------------------------
 
     draw.rounded_rectangle(
-        (480, 100, 560, 202),
+        (
+            480,
+            100,
+            560,
+            202
+        ),
         radius=3,
         fill=WALL,
         outline=OUTLINE,
@@ -670,25 +918,45 @@ def draw_house():
     # Brick details
 
     draw.line(
-        (480, 150, 560, 150),
+        (
+            480,
+            150,
+            560,
+            150
+        ),
         fill=OUTLINE,
         width=5
     )
 
     draw.line(
-        (520, 150, 520, 200),
+        (
+            520,
+            150,
+            520,
+            200
+        ),
         fill=OUTLINE,
         width=5
     )
 
     draw.line(
-        (505, 102, 505, 150),
+        (
+            505,
+            102,
+            505,
+            150
+        ),
         fill=OUTLINE,
         width=5
     )
 
     draw.line(
-        (545, 102, 545, 150),
+        (
+            545,
+            102,
+            545,
+            150
+        ),
         fill=OUTLINE,
         width=5
     )
@@ -697,7 +965,12 @@ def draw_house():
     # Dark chimney opening
 
     draw.rounded_rectangle(
-        (488, 107, 552, 138),
+        (
+            488,
+            107,
+            552,
+            138
+        ),
         radius=5,
         fill=CHIMNEY_DARK
     )
@@ -706,7 +979,12 @@ def draw_house():
     # Chimney cap
 
     draw.rounded_rectangle(
-        (468, 86, 572, 117),
+        (
+            468,
+            86,
+            572,
+            117
+        ),
         radius=13,
         fill=ROOF,
         outline=OUTLINE,
@@ -718,71 +996,96 @@ def draw_house():
 
 
 # ============================================================
-#                    SMOOTH MOVEMENT
+#                     SMOOTH MOVEMENT
 # ============================================================
-#
-# Normal linear movement can look robotic.
-#
-# This function makes the butterfly accelerate and
-# decelerate smoothly.
-#
 
 def smoothstep(t):
 
-    t = max(0.0, min(1.0, t))
-
-    return t * t * (3 - 2 * t)
-
-
-# ============================================================
-#                BUTTERFLY FLIGHT POSITION
-# ============================================================
-
-def get_flight_position(current_time):
-
-    # Convert current flight time to 0 -> 1
-
-    progress = current_time / FLIGHT_END_TIME
-
-    progress = max(
+    t = max(
         0.0,
-        min(1.0, progress)
+        min(
+            1.0,
+            t
+        )
+    )
+
+    return (
+        t
+        * t
+        * (
+            3
+            - 2 * t
+        )
     )
 
 
-    smooth = smoothstep(progress)
+# ============================================================
+#                 BUTTERFLY FLIGHT POSITION
+# ============================================================
+
+def get_flight_position(
+    current_time
+):
+
+    progress = (
+        current_time
+        / FLIGHT_END_TIME
+    )
+
+    progress = max(
+        0.0,
+        min(
+            1.0,
+            progress
+        )
+    )
+
+
+    smooth = smoothstep(
+        progress
+    )
 
 
     # --------------------------------------------------------
     # BASIC MOVEMENT
     # --------------------------------------------------------
 
-    x = START_X + (
-        CHIMNEY_CENTER_X - START_X
-    ) * smooth
+    x = (
+        START_X
+        + (
+            CHIMNEY_CENTER_X
+            - START_X
+        )
+        * smooth
+    )
 
-    y = START_Y + (
-        APPROACH_Y - START_Y
-    ) * smooth
+    y = (
+        START_Y
+        + (
+            APPROACH_Y
+            - START_Y
+        )
+        * smooth
+    )
 
 
     # --------------------------------------------------------
-    # CURVED FLIGHT PATH
+    # CURVED TRAJECTORY
     # --------------------------------------------------------
-    #
-    # The butterfly rises a little in the middle of the path.
-    #
 
     arc = (
         -80
-        * math.sin(math.pi * progress)
+        * math.sin(
+            math.pi
+            * progress
+        )
     )
 
     y += arc
 
 
     # --------------------------------------------------------
-    # SMALL FLUTTER MOVEMENT
+    # SMALL WHOLE-BUTTERFLY FLUTTER
     # --------------------------------------------------------
 
     flutter = (
@@ -791,383 +1094,320 @@ def get_flight_position(current_time):
             current_time
             * 2
             * math.pi
-            * 2.5
+            * FLUTTER_FREQUENCY
         )
     )
 
     y += flutter
 
 
-    return x, y
+    return (
+        x,
+        y
+    )
 
 
 # ============================================================
-#                BUTTERFLY ENTRY POSITION
+#                 BUTTERFLY ENTRY POSITION
 # ============================================================
-#
-#
 
-def get_entry_position(current_time):
+def get_entry_position(
+    current_time
+):
 
     entry_time = (
-        current_time - FLIGHT_END_TIME
+        current_time
+        - FLIGHT_END_TIME
     )
 
     progress = (
-        entry_time / ENTRY_DURATION
+        entry_time
+        / ENTRY_DURATION
     )
 
     progress = max(
         0.0,
-        min(1.0, progress)
+        min(
+            1.0,
+            progress
+        )
     )
 
-    smooth = smoothstep(progress)
+    smooth = smoothstep(
+        progress
+    )
 
 
     x = CHIMNEY_CENTER_X
 
-    y = APPROACH_Y + (
-        INSIDE_CHIMNEY_Y - APPROACH_Y
-    ) * smooth
+
+    y = (
+        APPROACH_Y
+        + (
+            INSIDE_CHIMNEY_Y
+            - APPROACH_Y
+        )
+        * smooth
+    )
 
 
-    return x, y, progress
+    return (
+        x,
+        y,
+        progress
+    )
 
 
 # ============================================================
-#                     DRAW BUTTERFLY
+#                  DRAW LOTTIE BUTTERFLY
 # ============================================================
 #
-# The butterfly is drawn entirely from code.
+# This replaces the old Pillow butterfly completely.
 #
-# The wings continuously change shape according to time.
+# Python controls:
+#
+# - trajectory
+# - X position
+# - Y position
+# - total timing
+# - entry into chimney
+# - butterfly size
+#
+# Lottie controls:
+#
+# - butterfly appearance
+# - wing movement
 #
 
-def draw_butterfly(
+def draw_lottie_butterfly(
     image,
+    lottie_animation,
     x,
     y,
     current_time,
     scale=1.0
 ):
 
-    transparent_layer = Image.new(
-        "RGBA",
-        (WIDTH, HEIGHT),
-        (0, 0, 0, 0)
+
+    # --------------------------------------------------------
+    # GET LOTTIE INFORMATION
+    # --------------------------------------------------------
+
+    total_lottie_frames = (
+        lottie_animation
+        .lottie_animation_get_totalframe()
     )
 
-    draw = ImageDraw.Draw(
-        transparent_layer
+    lottie_fps = (
+        lottie_animation
+        .lottie_animation_get_framerate()
     )
-
-
-    x = int(x)
-    y = int(y)
 
 
     # --------------------------------------------------------
-    # WING ANIMATION
+    # SELECT LOTTIE FRAME
     # --------------------------------------------------------
+    #
+    # Example:
+    #
+    # current_time = 1 second
+    #
+    # Original Lottie = 30 FPS
+    #
+    # 1 * 30 = Lottie frame 30
+    #
+    # LOTTIE_SPEED can modify this.
+    #
 
-    phase = (
+    lottie_frame = int(
         current_time
-        * WING_FREQUENCY
-        * 2
-        * math.pi
-    )
-
-    # Goes smoothly between approximately 0.35 and 1.0
-
-    wing_open = (
-        0.35
-        + 0.65
-        * abs(math.sin(phase))
-    )
-
-
-    size = BUTTERFLY_SIZE * scale
-
-    wing_width = max(
-        6,
-        int(size * wing_open)
-    )
-
-    upper_height = max(
-        8,
-        int(size * 0.80)
-    )
-
-    lower_width = max(
-        5,
-        int(wing_width * 0.72)
-    )
-
-    lower_height = max(
-        5,
-        int(size * 0.55)
-    )
-
-
-    butterfly_outline = (
-        72,
-        46,
-        31,
-        255
-    )
-
-    upper_wing = (
-        242,
-        164,
-        57,
-        255
-    )
-
-    lower_wing = (
-        238,
-        113,
-        62,
-        255
-    )
-
-    wing_detail = (
-        255,
-        225,
-        134,
-        255
+        * lottie_fps
+        * LOTTIE_SPEED
     )
 
 
     # --------------------------------------------------------
-    # LEFT UPPER WING
+    # LOOP THE ANIMATION
     # --------------------------------------------------------
 
-    draw.ellipse(
-        (
-            x - wing_width - 4,
-            y - upper_height,
-            x - 3,
-            y + 4
-        ),
-        fill=upper_wing,
-        outline=butterfly_outline,
-        width=2
+    lottie_frame = (
+        lottie_frame
+        % total_lottie_frames
     )
 
 
     # --------------------------------------------------------
-    # RIGHT UPPER WING
+    # RENDER SELECTED LOTTIE FRAME
     # --------------------------------------------------------
 
-    draw.ellipse(
-        (
-            x + 3,
-            y - upper_height,
-            x + wing_width + 4,
-            y + 4
-        ),
-        fill=upper_wing,
-        outline=butterfly_outline,
-        width=2
-    )
-
-
-    # --------------------------------------------------------
-    # LOWER LEFT WING
-    # --------------------------------------------------------
-
-    draw.ellipse(
-        (
-            x - lower_width,
-            y - 2,
-            x - 2,
-            y + lower_height
-        ),
-        fill=lower_wing,
-        outline=butterfly_outline,
-        width=2
-    )
-
-
-    # --------------------------------------------------------
-    # LOWER RIGHT WING
-    # --------------------------------------------------------
-
-    draw.ellipse(
-        (
-            x + 2,
-            y - 2,
-            x + lower_width,
-            y + lower_height
-        ),
-        fill=lower_wing,
-        outline=butterfly_outline,
-        width=2
-    )
-
-
-    # --------------------------------------------------------
-    # WING SPOTS
-    # --------------------------------------------------------
-
-    spot_radius = max(
-        2,
-        int(size * 0.08)
-    )
-
-    spot_y = int(
-        y - upper_height * 0.45
-    )
-
-
-    for direction in [-1, 1]:
-
-        spot_x = int(
-            x
-            + direction
-            * wing_width
-            * 0.55
+    butterfly = (
+        lottie_animation
+        .render_pillow_frame(
+            frame_num=lottie_frame
         )
+    )
 
-        draw.ellipse(
-            (
-                spot_x - spot_radius,
-                spot_y - spot_radius,
-                spot_x + spot_radius,
-                spot_y + spot_radius
-            ),
-            fill=wing_detail
+
+    butterfly = butterfly.convert(
+        "RGBA"
+    )
+
+
+    # --------------------------------------------------------
+    # REMOVE TRANSPARENT EMPTY SPACE
+    # --------------------------------------------------------
+    #
+    # Lottie canvas = 500 x 500.
+    #
+    # The actual butterfly doesn't occupy the full canvas.
+    #
+    # Cropping prevents the butterfly from becoming tiny.
+    #
+
+    bbox = butterfly.getbbox()
+
+    if bbox is not None:
+
+        butterfly = butterfly.crop(
+            bbox
         )
 
 
     # --------------------------------------------------------
-    # BODY
+    # GET CURRENT SIZE
     # --------------------------------------------------------
 
-    body_height = int(
-        size * 0.85
+    original_width = (
+        butterfly.width
     )
 
-    body_width = max(
-        3,
-        int(size * 0.10)
+    original_height = (
+        butterfly.height
     )
 
 
-    draw.ellipse(
+    # --------------------------------------------------------
+    # DETERMINE NEW SIZE
+    # --------------------------------------------------------
+
+    desired_width = max(
+        1,
+        int(
+            BUTTERFLY_SIZE
+            * scale
+        )
+    )
+
+
+    aspect_ratio = (
+        original_height
+        / original_width
+    )
+
+
+    desired_height = max(
+        1,
+        int(
+            desired_width
+            * aspect_ratio
+        )
+    )
+
+
+    # --------------------------------------------------------
+    # RESIZE
+    # --------------------------------------------------------
+
+    butterfly = butterfly.resize(
         (
-            x - body_width,
-            y - body_height // 2,
-            x + body_width,
-            y + body_height // 2
+            desired_width,
+            desired_height
         ),
-        fill=butterfly_outline
+        Image.Resampling.LANCZOS
     )
 
 
     # --------------------------------------------------------
-    # HEAD
+    # CENTER BUTTERFLY ON X,Y
     # --------------------------------------------------------
 
-    head_radius = max(
-        3,
-        int(size * 0.11)
+    paste_x = int(
+        x
+        - desired_width / 2
     )
 
-    head_y = int(
-        y - body_height * 0.55
-    )
-
-
-    draw.ellipse(
-        (
-            x - head_radius,
-            head_y - head_radius,
-            x + head_radius,
-            head_y + head_radius
-        ),
-        fill=butterfly_outline
+    paste_y = int(
+        y
+        - desired_height / 2
     )
 
 
     # --------------------------------------------------------
-    # ANTENNAE
+    # PLACE LOTTIE ON VIDEO FRAME
     # --------------------------------------------------------
-
-    antenna_length = int(
-        size * 0.35
-    )
-
-
-    draw.line(
-        (
-            x - 2,
-            head_y,
-            x - antenna_length,
-            head_y - antenna_length
-        ),
-        fill=butterfly_outline,
-        width=2
-    )
-
-    draw.line(
-        (
-            x + 2,
-            head_y,
-            x + antenna_length,
-            head_y - antenna_length
-        ),
-        fill=butterfly_outline,
-        width=2
-    )
-
-
-    # Put butterfly onto main frame
 
     image.paste(
-        transparent_layer,
-        (0, 0),
-        transparent_layer
+        butterfly,
+        (
+            paste_x,
+            paste_y
+        ),
+        butterfly
     )
 
 
 # ============================================================
-#           DRAW CHIMNEY IN FRONT OF BUTTERFLY
+#          DRAW CHIMNEY IN FRONT OF BUTTERFLY
 # ============================================================
-#
-# THIS IS WHAT CREATES THE "GOING INTO THE CHIMNEY" EFFECT.
 #
 # Drawing order:
 #
 # 1. House
-# 2. Butterfly
-# 3. Front part of chimney
+# 2. Lottie butterfly
+# 3. Chimney foreground
 #
-# Therefore the chimney can visually cover the butterfly.
+# Therefore the butterfly can disappear behind the chimney.
 #
 
-def draw_chimney_foreground(image):
+def draw_chimney_foreground(
+    image
+):
 
-    draw = ImageDraw.Draw(image)
+    draw = ImageDraw.Draw(
+        image
+    )
 
 
-    # Front chimney body
+    # --------------------------------------------------------
+    # FRONT CHIMNEY BODY
+    # --------------------------------------------------------
 
     draw.line(
-        (480, 137, 480, 202),
+        (
+            480,
+            137,
+            480,
+            202
+        ),
         fill=OUTLINE,
         width=8
     )
 
     draw.line(
-        (560, 137, 560, 202),
+        (
+            560,
+            137,
+            560,
+            202
+        ),
         fill=OUTLINE,
         width=8
     )
 
 
-    # Front face below opening
+    # --------------------------------------------------------
+    # FRONT FACE BELOW OPENING
+    # --------------------------------------------------------
 
     draw.rectangle(
         (
@@ -1180,40 +1420,71 @@ def draw_chimney_foreground(image):
     )
 
 
-    # Restore brick details
+    # --------------------------------------------------------
+    # RESTORE BRICK DETAILS
+    # --------------------------------------------------------
 
     draw.line(
-        (484, 150, 556, 150),
+        (
+            484,
+            150,
+            556,
+            150
+        ),
         fill=OUTLINE,
         width=5
     )
 
     draw.line(
-        (520, 150, 520, 198),
+        (
+            520,
+            150,
+            520,
+            198
+        ),
         fill=OUTLINE,
         width=5
     )
 
 
-    # Re-draw outside edges
+    # --------------------------------------------------------
+    # RESTORE OUTSIDE EDGES
+    # --------------------------------------------------------
 
     draw.line(
-        (480, 137, 480, 202),
+        (
+            480,
+            137,
+            480,
+            202
+        ),
         fill=OUTLINE,
         width=8
     )
 
     draw.line(
-        (560, 137, 560, 202),
+        (
+            560,
+            137,
+            560,
+            202
+        ),
         fill=OUTLINE,
         width=8
     )
 
 
-    # Chimney cap remains in foreground
+    # --------------------------------------------------------
+    # CHIMNEY CAP
+    # --------------------------------------------------------
 
     draw.rounded_rectangle(
-        (468, 86, 572, 117),
+        (
+            468,
+            86,
+            572,
+            117
+        ),
         radius=13,
         fill=ROOF,
         outline=OUTLINE,
@@ -1222,57 +1493,195 @@ def draw_chimney_foreground(image):
 
 
 # ============================================================
-#                      CREATE VIDEO
+#                       CREATE VIDEO
 # ============================================================
 
 def create_video():
+
+
+    # --------------------------------------------------------
+    # CHECK LOTTIE FILE EXISTS
+    # --------------------------------------------------------
+
+    if not os.path.exists(
+        LOTTIE_FILE
+    ):
+
+        raise FileNotFoundError(
+            "\n\n"
+            "Lottie JSON file was not found.\n"
+            "\n"
+            f"Expected file:\n{LOTTIE_FILE}\n"
+            "\n"
+            "Make sure it is beside butterfly.py."
+        )
+
+
+    # --------------------------------------------------------
+    # LOAD LOTTIE
+    # --------------------------------------------------------
+
+    print()
+
+    print(
+        "Loading Lottie butterfly..."
+    )
+
+
+    lottie_animation = (
+        LottieAnimation.from_file(
+            LOTTIE_FILE
+        )
+    )
+
+
+    # --------------------------------------------------------
+    # READ LOTTIE INFORMATION
+    # --------------------------------------------------------
+
+    lottie_frames = (
+        lottie_animation
+        .lottie_animation_get_totalframe()
+    )
+
+    lottie_fps = (
+        lottie_animation
+        .lottie_animation_get_framerate()
+    )
+
+    lottie_duration = (
+        lottie_animation
+        .lottie_animation_get_duration()
+    )
+
+
+    # --------------------------------------------------------
+    # OUTPUT FILENAME
+    # --------------------------------------------------------
 
     output_filename = (
         get_next_output_filename()
     )
 
 
-    # Number of frames in entire video
+    # --------------------------------------------------------
+    # VIDEO FRAME COUNTS
+    # --------------------------------------------------------
 
     total_frames = round(
-        VIDEO_DURATION * FPS
+        VIDEO_DURATION
+        * FPS
     )
 
-
-    # Useful information for EEG timing
-
     final_frame = round(
-        FINAL_TIME * FPS
+        FINAL_TIME
+        * FPS
     )
 
     flight_end_frame = round(
-        FLIGHT_END_TIME * FPS
+        FLIGHT_END_TIME
+        * FPS
     )
 
 
+    # --------------------------------------------------------
+    # SHOW SETTINGS
+    # --------------------------------------------------------
+
     print()
-    print("================================")
-    print("BUTTERFLY VIDEO")
-    print("================================")
 
     print(
-        "Resolution:",
+        "========================================"
+    )
+
+    print(
+        "LOTTIE BUTTERFLY VIDEO"
+    )
+
+    print(
+        "========================================"
+    )
+
+
+    print(
+        "Video resolution:",
         WIDTH,
         "x",
         HEIGHT
     )
 
+
     print(
-        "Frame rate:",
+        "Video frame rate:",
         FPS,
         "FPS"
     )
 
+
     print(
-        "Total video:",
+        "Video duration:",
         VIDEO_DURATION,
         "seconds"
     )
+
+
+    print()
+
+
+    print(
+        "Lottie file:",
+        LOTTIE_FILE
+    )
+
+
+    print(
+        "Original Lottie FPS:",
+        lottie_fps
+    )
+
+
+    print(
+        "Original Lottie frames:",
+        lottie_frames
+    )
+
+
+    print(
+        "Original Lottie duration:",
+        lottie_duration,
+        "seconds"
+    )
+
+
+    print(
+        "Lottie playback speed:",
+        LOTTIE_SPEED
+    )
+
+
+    print(
+        "Approximate wing frequency:",
+        round(
+            1.5
+            * LOTTIE_SPEED,
+            2
+        ),
+        "Hz"
+    )
+
+
+    print()
+
+
+    print(
+        "Whole-body flutter frequency:",
+        FLUTTER_FREQUENCY,
+        "Hz"
+    )
+
+
+    print()
+
 
     print(
         "Flight reaches chimney:",
@@ -1280,10 +1689,12 @@ def create_video():
         "seconds"
     )
 
+
     print(
-        "Flight-end frame:",
+        "Flight-end video frame:",
         flight_end_frame
     )
+
 
     print(
         "Fully inside chimney:",
@@ -1291,14 +1702,23 @@ def create_video():
         "seconds"
     )
 
+
     print(
-        "Final frame:",
+        "Final video frame:",
         final_frame
     )
 
-    print("================================")
+
+    print(
+        "========================================"
+    )
+
     print()
 
+
+    # --------------------------------------------------------
+    # VIDEO WRITER
+    # --------------------------------------------------------
 
     writer = imageio.get_writer(
         output_filename,
@@ -1309,40 +1729,53 @@ def create_video():
     )
 
 
-    # --------------------------------------------------------
-    # GENERATE EVERY VIDEO FRAME
-    # --------------------------------------------------------
+    # ========================================================
+    #                  GENERATE VIDEO
+    # ========================================================
 
     for frame_number in range(
         total_frames
     ):
 
 
-        # Convert frame number to seconds
+        # ----------------------------------------------------
+        # VIDEO TIME
+        # ----------------------------------------------------
 
         current_time = (
-            frame_number / FPS
+            frame_number
+            / FPS
         )
 
 
-        # Start every frame with the clean house
+        # ----------------------------------------------------
+        # CLEAN BACKGROUND
+        # ----------------------------------------------------
 
         frame = draw_house()
 
 
         # ====================================================
-        # PHASE 1:
+        # PHASE 1
+        #
         # BUTTERFLY FLIES TOWARD CHIMNEY
         # ====================================================
 
-        if current_time < FLIGHT_END_TIME:
+        if (
+            current_time
+            < FLIGHT_END_TIME
+        ):
 
-            x, y = get_flight_position(
-                current_time
+            x, y = (
+                get_flight_position(
+                    current_time
+                )
             )
 
-            draw_butterfly(
+
+            draw_lottie_butterfly(
                 frame,
+                lottie_animation,
                 x,
                 y,
                 current_time,
@@ -1351,33 +1784,40 @@ def create_video():
 
 
         # ====================================================
-        # PHASE 2:
+        # PHASE 2
+        #
         # BUTTERFLY ENTERS CHIMNEY
         # ====================================================
 
-        elif current_time < FINAL_TIME:
+        elif (
+            current_time
+            < FINAL_TIME
+        ):
 
-            x, y, entry_progress = (
+            (
+                x,
+                y,
+                entry_progress
+            ) = (
                 get_entry_position(
                     current_time
                 )
             )
 
 
-            # Butterfly becomes slightly smaller while moving
-            # into the chimney opening.
-            #
-            # This adds a little depth without suddenly
-            # changing its appearance.
+            # Butterfly becomes slightly smaller
+            # while entering chimney.
 
             scale = (
                 1.0
-                - 0.30 * entry_progress
+                - 0.30
+                * entry_progress
             )
 
 
-            draw_butterfly(
+            draw_lottie_butterfly(
                 frame,
+                lottie_animation,
                 x,
                 y,
                 current_time,
@@ -1386,10 +1826,9 @@ def create_video():
 
 
         # ====================================================
-        # PHASE 3:
-        # AFTER FINAL_TIME
+        # PHASE 3
         #
-        # Butterfly is completely hidden.
+        # BUTTERFLY COMPLETELY HIDDEN
         # ====================================================
 
         else:
@@ -1398,9 +1837,7 @@ def create_video():
 
 
         # ----------------------------------------------------
-        # Put chimney foreground over butterfly.
-        #
-        # This gives us actual visual occlusion.
+        # CHIMNEY FOREGROUND
         # ----------------------------------------------------
 
         draw_chimney_foreground(
@@ -1408,34 +1845,48 @@ def create_video():
         )
 
 
-        # Add frame to MP4
+        # ----------------------------------------------------
+        # ADD FRAME TO VIDEO
+        # ----------------------------------------------------
 
         writer.append_data(
-            np.array(frame)
+            np.array(
+                frame
+            )
         )
 
+
+    # --------------------------------------------------------
+    # FINISH VIDEO
+    # --------------------------------------------------------
 
     writer.close()
 
 
     print()
-    print("DONE!")
+
+    print(
+        "DONE!"
+    )
+
     print()
+
     print(
         "Created:",
         output_filename
     )
+
     print()
 
 
 # ============================================================
-#                         RUN
+#                          RUN
 # ============================================================
 
 if __name__ == "__main__":
 
-    # Save vector version of the house
+    # Create/update SVG version of house
     create_house_svg()
 
-    # Create the MP4 animation
+    # Create Lottie butterfly video
     create_video()
